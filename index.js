@@ -169,7 +169,6 @@ async function getGods(address) {
   for (let i = 0; i < godBalance; i++) {
     let getGod = godsContract.methods.tokenOfOwnerByIndex(address, i).call();
     godsResult.push(getGod);
-    console.log(getGod);
   }
 
   return await Promise.all(godsResult);
@@ -182,7 +181,7 @@ const baseHeroUrl =
 async function getHeroCount(address) {
   let herosContract = new web3.eth.Contract(herosAbi, herosAddress);
   let heroBalance = await herosContract.methods.balanceOf(address).call();
-  console.log("God balance:", heroBalance);
+  console.log("Hero balance:", heroBalance);
   return heroBalance;
 }
 
@@ -194,7 +193,6 @@ async function getHeros(address) {
   for (let i = 0; i < heroBalance; i++) {
     let getHero = herosContract.methods.tokenOfOwnerByIndex(address, i).call();
     herosResult.push(getHero);
-    console.log(getHero);
   }
 
   return await Promise.all(herosResult);

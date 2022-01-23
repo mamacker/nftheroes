@@ -119,6 +119,7 @@
     .hero {
       margin: 20px;
       text-align: center;
+      width: 310px;
     }
 
     #godProfiles,
@@ -211,7 +212,9 @@
           document.location.host;
         console.log("Connecting websocket:", wsUrl);
         socket = new WebSocket(wsUrl);
-        socket.ready = true;
+        socket.addEventListener('open', (event) => {
+          socket.ready = true;
+        });
       } catch (ex) {
         console.log(ex);
       }
@@ -254,13 +257,60 @@
       document.getElementById("herosCountTotal").innerHTML = data.herocount;
     });
 
+    function buildProfileEditor(parentDiv, profile) {
+      $(parentDiv).children(".profileEditor").remove();
+      let html = `
+        <div class="profileEditor profile${profile.tokenId}">
+          <div class="profileImg">
+            <img class="profileImgTag" src="${profile.img}" />
+          </div>
+          <div class="profileName">
+            <input class="profileNameInput" type="text" placeholder="Name" value="${profile.name}" />
+          </div>
+          <div class="profileDesc">
+            <textarea class="profileDescInput" placeholder="Description" value="${profile.desc}"></textarea>
+          </div>
+          <div class="profileSubmit">
+            <button class="profileSubmit" onclick="submitProfile(${profile.tokenId})">Update</button>
+          </div>
+          `;
+      let editor = $(html);
+      editor.click(function (e) {
+        e.stopPropagation();
+      });
+      parentDiv.append(editor);
+    }
+
+    function submitProfile(whichId) {
+      let profile = godsDBIndex[whichId];
+      if (profile == null) {
+        profile = herosDBIndex[whichId];
+      }
+      let name = $(`.profile${whichId} .profileNameInput`).val();
+      let desc = $(`.profile${whichId} .profileDescInput`).val();
+      let data = {
+        type: "updateprofile",
+        tokenId: whichId,
+        name: name,
+        desc: desc
+      };
+      socket.send(JSON.stringify(data));
+      localStorage[whichId] = JSON.stringify({
+        name: name,
+        desc: desc
+      });
+    }
+
     const baseGodUrl =
       "https://ipfs.io/ipfs/QmPtK2cZYj6cqABKDAdtagJ1msAbZ662xgJxkqwD7gLLRT/"; // + ID
     const baseGodImgUrl =
       "https://ipfs.io/ipfs/QmZmyGEDkCSn1VdTRqPKMLbrQyyE2zhs9jcauUyKQfPUzf/";
     socket.listenFor("godsresult", function (data) {
+      $("#godProfiles").empty();
       let gods = data.gods;
       let promises = [];
+      godsDB = [];
+      godsDBIndex = {};
       for (let i = 0; i < gods.length; i++) {
         let god = gods[i];
         let url = baseGodUrl + god;
@@ -279,8 +329,19 @@
         let images = [];
         for (let i = 0; i < responses.length; i++) {
           let response = await responses[i].json();
+          let localDbString = localStorage[response.tokenId];
+          let localDb = null;
+          if (localDbString) {
+            localDb = JSON.parse(localDbString);
+          }
+          console.log("Localdb for " + response.tokenId + ": " + localDb);
+
           for (prop in response) {
             godsDBIndex[response.tokenId][prop] = response[prop];
+            // Override if there is a local storage version of the property.
+            if (localDb && localDb[prop] != null) {
+              godsDBIndex[response.tokenId][prop] = localDb[prop];
+            }
           }
         }
 
@@ -295,7 +356,14 @@
             <div class="godId">${curGod.tokenId}</div>
           </div>
           `;
-          $("#godProfiles").append(godListHtml);
+          let listing = $(godListHtml).appendTo("#godProfiles");
+          listing.css({
+            cursor: "pointer"
+          }).click((e) => {
+            if (e.currentTarget == listing[0]) {
+              buildProfileEditor(listing, curGod);
+            }
+          });
         }
       });
     });
@@ -305,6 +373,9 @@
     const baseHeroImgUrl =
       "https://ipfs.io/ipfs/Qmev8NyPT8HyqDQ2m5i2jKvLBmhtm2H4AuFSwPXPyHq97a/";
     socket.listenFor("herosresult", function (data) {
+      $("#heroProfiles").empty();
+      herosDB = [];
+      herosDBIndex = {};
       let heros = data.heros;
       let promises = [];
       for (let i = 0; i < heros.length; i++) {
@@ -361,13 +432,21 @@
         $("button.connect").text(addressShrink(account));
         $(".caveat").text("Click to update");
 
+        let runAccount = function () {
+          socket.send(JSON.stringify({ type: "getgodcount", address: account }));
+          socket.send(JSON.stringify({ type: "getgods", address: account }));
+          socket.send(JSON.stringify({ type: "getherocount", address: account }));
+          socket.send(JSON.stringify({ type: "getheros", address: account }));
+        }
+
         setTimeout(() => {
-          socket.addEventListener('open', (event) => {
-            socket.send(JSON.stringify({ type: "getgodcount", address: account }));
-            socket.send(JSON.stringify({ type: "getgods", address: account }));
-            socket.send(JSON.stringify({ type: "getherocount", address: account }));
-            socket.send(JSON.stringify({ type: "getheros", address: account }));
-          });
+          if (socket.ready) {
+            runAccount();
+          } else {
+            socket.addEventListener('open', (event) => {
+              runAccount();
+            });
+          }
         }, 300);
       }
     }

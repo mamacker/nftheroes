@@ -1,0 +1,49 @@
+{
+  "users": {
+    "mamacker": {
+      "id": 1,
+      "name": "mamacker",
+      "password": "hotbuttscowler$123"
+    },
+    "giancarlo": {
+      "id": 2,
+      "name": "giancarlo",
+      "password": "howlermonkey!$33"
+    },
+    "gamacker": {
+      "id": 3,
+      "name": "gamacker",
+      "password": "rumpusporkysnot"
+    },
+    "ramacker": {
+      "id": 4,
+      "name": "ramacker",
+      "password": "flatsquirrelnut"
+    },
+    "camacker": {
+      "id": 5,
+      "name": "camacker",
+      "password": "howdysmacknut"
+    },
+    "maxbrand99": {
+      "id": 6,
+      "name": "MaxBrand99",
+      "password": "monkeyswithmoney$1"
+    },
+    "alecengineer": {
+      "id": 7,
+      "name": "Alec",
+      "password": "powerwashingsun$1"
+    }
+  },
+  "permissions": {
+    "mamacker": {
+      "read": true,
+      "write": true
+    },
+    "giancarlo": {
+      "read": true,
+      "write": true
+    }
+  }
+}

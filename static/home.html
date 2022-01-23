@@ -286,11 +286,12 @@
         $("button.connect").text(addressShrink(account));
         $(".caveat").text("Click to update");
 
-        setTimeout(function () {
-          console.log("Sent request for god count.");
-          socket.send(JSON.stringify({ type: "getgodcount", address: account }));
-          socket.send(JSON.stringify({ type: "getgods", address: account }));
-        }, 1000);
+        setTimeout(() => {
+          socket.addEventListener('open', (event) => {
+            socket.send(JSON.stringify({ type: "getgodcount", address: account }));
+            socket.send(JSON.stringify({ type: "getgods", address: account }));
+          });
+        }, 300);
       }
     }
 

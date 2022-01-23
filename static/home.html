@@ -1,0 +1,366 @@
+<html>
+
+<head>
+  <link rel="icon" type="image/png" href="/static/explorer.png">
+  <style>
+    @font-face {
+      font-family: myFirstFont;
+      src: url(/static/Lazer84.ttf);
+    }
+
+    body {
+      font-family: myFirstFont;
+      background-color: #26030f;
+      color: #ff3562;
+    }
+
+    .header {
+      background-color: #26030f;
+      color: #ff3562;
+      padding: 10px;
+      text-align: center;
+      font-size: 60px;
+      background-image: url("/static/banner.jpg");
+      background-repeat: no-repeat;
+      background-position: center top;
+    }
+
+    .heading {
+      margin: 20px;
+    }
+
+    button {
+      color: white;
+      font-family: 'Optician Sans', sans-serif;
+      font-size: 18px;
+      font-weight: 400;
+      letter-spacing: .1em;
+      text-indent: -0.1em;
+      border-radius: 20px;
+      border: 2px solid white;
+      background-color: #ff3562;
+      padding: 10px;
+      cursor: pointer;
+    }
+
+    .caveat {
+      color: white;
+      text-shadow: 0 0 1px rgba(black, 0.3);
+      font-size: 10px;
+      margin-top: 5px;
+      margin-bottom: 30px;
+      border-radius: 10px;
+      background-color: black;
+      width: fit-content;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 8px;
+    }
+
+    .mainbit {
+      padding: 10px;
+      text-align: center;
+      display: flex;
+    }
+
+    .godsCount {
+      color: white;
+      font-size: 20px;
+      margin-top: 5px;
+      margin-bottom: 30px;
+      border-radius: 10px;
+      background-color: black;
+      width: fit-content;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 8px;
+      overflow: hidden;
+    }
+
+    #godCountImg {
+      height: 100px;
+    }
+
+    #gcount {
+      font-size: 25px;
+      margin-top: 5px;
+      margin-bottom: 10px;
+      border-radius: 10px;
+      background-color: black;
+      width: fit-content;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 8px;
+      overflow: hidden;
+    }
+
+    .gcountTotal {
+      font-size: 25px;
+      margin-top: 15px;
+      margin-bottom: 10px;
+    }
+
+    .profileImgTag {
+      height: 200px;
+      border: 3px solid white;
+      border-radius: 50%;
+    }
+
+    .content {
+      margin: 20px;
+      text-align: center;
+    }
+
+    .god {
+      margin: 20px;
+      text-align: center;
+    }
+  </style>
+  <script src="https://code.jquery.com/jquery-3.6.0.js" integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk="
+    crossorigin="anonymous"></script>
+  <script>
+    function toggledark(d) {
+      var css = `:root{background-color:#fefefe;filter:invert(100%)}*{background-color:inherit}img:not([src*=".svg"]),video{filter: invert(100%)}`,
+        style,
+        id = "dark-theme-snippet",
+        ee = d.getElementById(id);
+      if (null != ee) {
+        ee.parentNode.removeChild(ee);
+        localStorage.darkmode = false;
+      } else {
+        localStorage.darkmode = true;
+        style = d.createElement("style");
+        style.type = "text/css";
+        style.id = id;
+        if (style.styleSheet) style.styleSheet.cssText = css;
+        else style.appendChild(d.createTextNode(css));
+        (d.head || d.querySelector("head")).appendChild(style);
+      }
+    }
+
+    if (localStorage.darkmode == "true") {
+      toggledark(document);
+    }
+  </script>
+</head>
+
+<body onscroll="">
+  <div id="status"></div>
+  <div id="darkmode">
+    <!--<img src="/static/dark.png" onclick="toggledark(document)" />-->
+  </div>
+  <div class="header">
+    <div class="heading">Record Your &nbsp;Story</div>
+    <button class="connect" onclick="getaddress()"> Connect Metamask </button>
+    <div class="caveat">(This is only &nbsp;to &nbsp;view &nbsp;your address)</div>
+  </div>
+  <div class="mainbit">
+    <div class="godsCount">
+      <div id="gcount">Gods Count</div>
+      <img id="godCountImg" src="/static/gods.jpg" />
+      <div class="gcountTotal">
+        <span id="godsCountTotal">0</span>
+      </div>
+    </div>
+    <div class="heroesCount"> </div>
+  </div>
+  <div class="content">
+    <div id="godProfiles"> </div>
+    <div id="heroProfiles"> </div>
+  </div>
+  <script>
+    if (typeof window.ethereum !== 'undefined') {
+      console.log('MetaMask is installed!');
+    }
+
+    let godsDB = [];
+    let godsDBIndex = {};
+
+    let socket = null;
+    let socketHandlers = {};
+    function setupSocket() {
+      // Create WebSocket connection.
+      try {
+        let wsUrl = (document.location.protocol == "https:" ? "wss://" : "ws://") +
+          document.location.host;
+        console.log("Connecting websocket:", wsUrl);
+        socket = new WebSocket(wsUrl);
+        socket.ready = true;
+      } catch (ex) {
+        console.log(ex);
+      }
+
+      socket.onerror = function (error) {
+        console.log("WebSocket Error ", JSON.stringify(error, 0, 2));
+        if (error.isTrusted) return;
+        document.location.href =
+          document.location.protocol + "//" + document.location.host + "/";
+      };
+
+      socket.onclose = function (data) {
+        document.location.href =
+          document.location.protocol + "//" + document.location.host + "/";
+      };
+
+      socket.addEventListener("message", function (event) {
+        console.log(event.data);
+        let data = JSON.parse(event.data);
+        if (data.type == "") {
+        }
+      });
+
+      socket.listenFor = function (message, callToMake) {
+        socketHandlers[message] = callToMake;
+      }
+
+      socket.addEventListener("message", (data) => {
+        let msg = JSON.parse(event.data);
+        socketHandlers[msg.type](msg);
+      });
+    }
+    setupSocket();
+
+    socket.listenFor("godcount", function (data) {
+      document.getElementById("godsCountTotal").innerHTML = data.godcount;
+    });
+
+    const baseGodUrl =
+      "https://ipfs.io/ipfs/QmPtK2cZYj6cqABKDAdtagJ1msAbZ662xgJxkqwD7gLLRT/"; // + ID
+    const baseGodImgUrl =
+      "https://ipfs.io/ipfs/QmZmyGEDkCSn1VdTRqPKMLbrQyyE2zhs9jcauUyKQfPUzf/";
+    socket.listenFor("godsresult", function (data) {
+      let gods = data.gods;
+      let promises = [];
+      for (let i = 0; i < gods.length; i++) {
+        let god = gods[i];
+        let url = baseGodUrl + god;
+        godsDB.push({
+          "name": god,
+          "img": baseGodImgUrl + god + ".png",
+          "url": url
+        });
+
+        godsDBIndex[god] = godsDB[godsDB.length - 1];
+
+        promises.push(fetch(url));
+      }
+
+      Promise.all(promises).then(async function (responses) {
+        let images = [];
+        for (let i = 0; i < responses.length; i++) {
+          let response = await responses[i].json();
+          for (prop in response) {
+            godsDBIndex[response.tokenId][prop] = response[prop];
+          }
+        }
+
+        for (let k = 0; k < godsDB.length; k++) {
+          let curGod = godsDB[k];
+          let godListHtml = `
+          <div class="god">
+            <div class="godImg">
+              <img class="profileImgTag" src="${curGod.img}" />
+            </div>
+            <div class="godName">${curGod.name}</div>
+            <div class="godId">${curGod.tokenId}</div>
+          </div>
+          `;
+          $("#godProfiles").append(godListHtml);
+        }
+      });
+
+    });
+
+    async function getaddress() {
+      const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+      const account = accounts[0];
+      localStorage.setItem("account", account);
+      setAddress(account);
+    }
+
+    function setAddress() {
+      var account = localStorage.getItem("account");
+      if (account == null) {
+        $("button.connect").innerHTML = "Please connect MetaMask";
+      } else {
+        $("button.connect").text(addressShrink(account));
+        $(".caveat").text("Click to update");
+
+        setTimeout(function () {
+          console.log("Sent request for god count.");
+          socket.send(JSON.stringify({ type: "getgodcount", address: account }));
+          socket.send(JSON.stringify({ type: "getgods", address: account }));
+        }, 1000);
+      }
+    }
+
+    // Check to see if we already have the address....
+    if (localStorage.getItem("account") != null) {
+      setAddress();
+    }
+
+    let isLoggedIn = false;
+    let activeAddress = null;
+
+    function checkAddress(address) {
+      let re = /^(0x|ronin:)?[0-9a-f]{40}$/i;
+      return re.test(address);
+    }
+
+    function copy(data) {
+      navigator.clipboard.writeText(data);
+      $("#status").text(`Data copied to clipboard: ${data}`);
+    }
+
+    function addressShrink(address) {
+      if (!checkAddress(address)) {
+        return "INVALID";
+      }
+
+      if (!address || address.length < 42) {
+        return address;
+      }
+
+      return (
+        address.substring(0, 6) +
+        "..." +
+        address.substring(address.length - 4)
+      );
+    }
+
+    function sleep(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    async function post(message) {
+      return new Promise(async (resolve, reject) => {
+        const response = await fetch(
+          document.location.protocol +
+          "//" +
+          document.location.host +
+          "/loginattempt",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(message),
+          }
+        );
+        resolve(await response.json());
+      });
+    }
+
+    async function send(message) {
+      return new Promise((resolve) => {
+        socket.send(JSON.stringify(message));
+        socket.onmessage = function (event) {
+          resolve(JSON.parse(event.data));
+        };
+      });
+    } // send
+
+  </script>
+</body>
+
+</html>

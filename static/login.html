@@ -1,0 +1,107 @@
+<html>
+  <head>
+    <script
+      src="https://code.jquery.com/jquery-3.6.0.js"
+      integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk="
+      crossorigin="anonymous"
+    ></script>
+  </head>
+  <body>
+    Login
+    <div id="status">Not logged in...</div>
+    <input type="text" id="username" placeholder="Username" />
+    <input type="password" id="password" placeholder="Password" />
+    <button id="login">Login</button>
+    <script>
+      /*
+        http://52.14.169.84:3001/code
+        http://52.14.169.84:3001/stats
+        http://52.14.169.84:3001/player/RONIN_ADDRESS + auth token
+        http://52.14.169.84:3001/squads/RONIN_ADDRESS + auth token
+        http://52.14.169.84:3001/missions/RONIN_ADDRESS + auth token
+        http://52.14.169.84:3001/battlelog/RONIN_ADDRESS
+        http://52.14.169.84:3001/slp/RONIN_ADDRESS
+        http://52.14.169.84:3001/mmr/RONIN_ADDRESS
+        http://52.14.169.84:3001/api/v1/RONIN_ADDRESS
+        http://52.14.169.84:3001/axies/AXIE_ID,AXIE_ID,AXIE_ID
+        */
+      // Create WebSocket connection.
+      const socket = new WebSocket(
+        (document.location.protocol == "https:" ? "wss://" : "ws://") +
+          document.location.host
+      );
+
+      async function post(message) {
+        return new Promise(async (resolve, reject) => {
+          const response = await fetch(
+            document.location.protocol +
+              "//" +
+              document.location.host +
+              "/loginattempt",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(message),
+            }
+          );
+          resolve(await response.json());
+        });
+      }
+
+      async function send(message) {
+        return new Promise((resolve) => {
+          socket.send(JSON.stringify(message));
+          socket.onmessage = function (event) {
+            resolve(JSON.parse(event.data));
+          };
+        });
+      } // send
+
+      // Connection opened
+      async function open() {
+        return new Promise((resolve) => {
+          socket.onopen = function (event) {
+            resolve();
+          };
+        });
+      }
+
+      socket.addEventListener("open", function (event) {
+        //socket.send(JSON.stringify({ type: "getAccounts", ids: ["0", "200"] }));
+      });
+
+      open().then(() => {
+        console.log("Connected");
+      });
+
+      socket.addEventListener("message", function (event) {
+        console.log(event.data);
+        if (event.data.type == "loggedin") {
+          document.location.href =
+            document.location.protocol + "//" + document.location.host + "/";
+        }
+      });
+
+      $("#login").click(async function () {
+        let res = await post({
+          type: "login",
+          username: $("#username").val(),
+          password: $("#password").val(),
+        });
+
+        console.log("Login result:", res);
+        if (res.success) {
+          $("#status").text("Logged in.");
+          setTimeout(function () {
+            document.location.href =
+              document.location.protocol + "//" + document.location.host + "/";
+          }, 1000);
+        } else {
+          $("#status").text("Login failed");
+        }
+      });
+    </script>
+  </body>
+</html>

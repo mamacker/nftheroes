@@ -130,6 +130,7 @@
     }
 
     .godName,
+    .godof,
     .heroName {
       margin-top: 10px;
     }
@@ -261,11 +262,13 @@
       $(parentDiv).children(".profileEditor").remove();
       let html = `
         <div class="profileEditor profile${profile.tokenId}">
-          <div class="profileImg">
-            <img class="profileImgTag" src="${profile.img}" />
-          </div>
           <div class="profileName">
+            Name: 
             <input class="profileNameInput" type="text" placeholder="Name" value="${profile.name}" />
+          </div>
+          <div class="profileGodOf">
+            God of: 
+            <input class="profileGodOfInput" type="text" placeholder="GodOf" value="${profile.godof}" />
           </div>
           <div class="profileDesc">
             <textarea class="profileDescInput" placeholder="Description" value="${profile.desc}"></textarea>
@@ -287,18 +290,20 @@
         profile = herosDBIndex[whichId];
       }
       let name = $(`.profile${whichId} .profileNameInput`).val();
+      let godof = $(`.profile${whichId} .profileGodOfInput`).val();
       let desc = $(`.profile${whichId} .profileDescInput`).val();
       let data = {
         type: "updateprofile",
         tokenId: whichId,
         name: name,
+        godof: godof,
         desc: desc
       };
       socket.send(JSON.stringify(data));
-      localStorage[whichId] = JSON.stringify({
-        name: name,
-        desc: desc
-      });
+      localStorage[whichId] = JSON.stringify(data);
+      setTimeout(() => {
+        $(".profileEditor").remove();
+      }, 10);
     }
 
     const baseGodUrl =
@@ -338,10 +343,10 @@
 
           for (prop in response) {
             godsDBIndex[response.tokenId][prop] = response[prop];
-            // Override if there is a local storage version of the property.
-            if (localDb && localDb[prop] != null) {
-              godsDBIndex[response.tokenId][prop] = localDb[prop];
-            }
+          }
+
+          for (prop in localDb) {
+            godsDBIndex[response.tokenId][prop] = localDb[prop];
           }
         }
 
@@ -353,8 +358,9 @@
               <img class="profileImgTag" src="${curGod.img}" />
             </div>
             <div class="godName">${curGod.name}</div>
+            ${(curGod.godof ? `<div class="godGodOf">God of: &nbsp;${curGod.godof}</div>` : "")}
             <div class="godId">${curGod.tokenId}</div>
-          </div>
+          </div >
           `;
           let listing = $(godListHtml).appendTo("#godProfiles");
           listing.css({
@@ -404,15 +410,15 @@
         for (let k = 0; k < herosDB.length; k++) {
           let curHero = herosDB[k];
           let heroListHtml = `
-          <div class="hero">
-            <div class="heroImg">
-              <img class="profileImgTag" src="${curHero.img}" />
+            <div class="hero" >
+              <div class="heroImg">
+                <img class="profileImgTag" src="${curHero.img}" />
+              </div>
+              <div class="heroName">${curHero.name}</div>
+              <div class="heroId">${curHero.tokenId}</div>
             </div>
-            <div class="heroName">${curHero.name}</div>
-            <div class="heroId">${curHero.tokenId}</div>
-          </div>
           `;
-          $("#heroProfiles").append(heroListHtml);
+          $("#heroProfiles").append($(heroListHtml));
         }
       });
     });

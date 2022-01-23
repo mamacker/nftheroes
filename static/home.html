@@ -63,7 +63,8 @@
       display: flex;
     }
 
-    .godsCount {
+    .godsCount,
+    .herosCount {
       color: white;
       font-size: 20px;
       margin-top: 5px;
@@ -77,11 +78,13 @@
       overflow: hidden;
     }
 
-    #godCountImg {
+    #godCountImg,
+    #heroCountImg {
       height: 100px;
     }
 
-    #gcount {
+    #gcount,
+    #hcount {
       font-size: 25px;
       margin-top: 5px;
       margin-bottom: 10px;
@@ -94,7 +97,8 @@
       overflow: hidden;
     }
 
-    .gcountTotal {
+    .gcountTotal,
+    .hcountTotal {
       font-size: 25px;
       margin-top: 15px;
       margin-bottom: 10px;
@@ -111,9 +115,22 @@
       text-align: center;
     }
 
-    .god {
+    .god,
+    .hero {
       margin: 20px;
       text-align: center;
+    }
+
+    #godProfiles,
+    #heroProfiles {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+    }
+
+    .godName,
+    .heroName {
+      margin-top: 10px;
     }
   </style>
   <script src="https://code.jquery.com/jquery-3.6.0.js" integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk="
@@ -162,7 +179,13 @@
         <span id="godsCountTotal">0</span>
       </div>
     </div>
-    <div class="heroesCount"> </div>
+    <div class="herosCount">
+      <div id="hcount">Heros Count</div>
+      <img id="heroCountImg" src="/static/gods.jpg" />
+      <div class="hcountTotal">
+        <span id="herosCountTotal">0</span>
+      </div>
+    </div>
   </div>
   <div class="content">
     <div id="godProfiles"> </div>
@@ -175,6 +198,9 @@
 
     let godsDB = [];
     let godsDBIndex = {};
+
+    let herosDB = [];
+    let herosDBIndex = {};
 
     let socket = null;
     let socketHandlers = {};
@@ -224,6 +250,10 @@
       document.getElementById("godsCountTotal").innerHTML = data.godcount;
     });
 
+    socket.listenFor("herocount", function (data) {
+      document.getElementById("herosCountTotal").innerHTML = data.herocount;
+    });
+
     const baseGodUrl =
       "https://ipfs.io/ipfs/QmPtK2cZYj6cqABKDAdtagJ1msAbZ662xgJxkqwD7gLLRT/"; // + ID
     const baseGodImgUrl =
@@ -268,7 +298,52 @@
           $("#godProfiles").append(godListHtml);
         }
       });
+    });
 
+    const baseHeroUrl =
+      "https://ipfs.io/ipfs/QmQCA6Hfr7357MrQskqsPmcBfGre8WDUUcH4qur15s4ELt/"; // + ID
+    const baseHeroImgUrl =
+      "https://ipfs.io/ipfs/Qmev8NyPT8HyqDQ2m5i2jKvLBmhtm2H4AuFSwPXPyHq97a/";
+    socket.listenFor("herosresult", function (data) {
+      let heros = data.heros;
+      let promises = [];
+      for (let i = 0; i < heros.length; i++) {
+        let hero = heros[i];
+        let url = baseHeroUrl + hero;
+        herosDB.push({
+          "name": hero,
+          "img": baseHeroImgUrl + hero + ".png",
+          "url": url
+        });
+
+        herosDBIndex[hero] = herosDB[herosDB.length - 1];
+
+        promises.push(fetch(url));
+      }
+
+      Promise.all(promises).then(async function (responses) {
+        let images = [];
+        for (let i = 0; i < responses.length; i++) {
+          let response = await responses[i].json();
+          for (prop in response) {
+            herosDBIndex[response.tokenId][prop] = response[prop];
+          }
+        }
+
+        for (let k = 0; k < herosDB.length; k++) {
+          let curHero = herosDB[k];
+          let heroListHtml = `
+          <div class="hero">
+            <div class="heroImg">
+              <img class="profileImgTag" src="${curHero.img}" />
+            </div>
+            <div class="heroName">${curHero.name}</div>
+            <div class="heroId">${curHero.tokenId}</div>
+          </div>
+          `;
+          $("#heroProfiles").append(heroListHtml);
+        }
+      });
     });
 
     async function getaddress() {
@@ -290,6 +365,8 @@
           socket.addEventListener('open', (event) => {
             socket.send(JSON.stringify({ type: "getgodcount", address: account }));
             socket.send(JSON.stringify({ type: "getgods", address: account }));
+            socket.send(JSON.stringify({ type: "getherocount", address: account }));
+            socket.send(JSON.stringify({ type: "getheros", address: account }));
           });
         }, 300);
       }

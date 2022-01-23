@@ -133,6 +133,22 @@ socketHandlers["getgods"] = async function (ws, data) {
   ws.send(response);
 };
 
+socketHandlers["getherocount"] = async function (ws, data) {
+  let response = JSON.stringify({
+    type: "herocount",
+    herocount: await getHeroCount(data.address),
+  });
+  ws.send(response);
+};
+
+socketHandlers["getheros"] = async function (ws, data) {
+  let response = JSON.stringify({
+    type: "herosresult",
+    heros: await getHeros(data.address),
+  });
+  ws.send(response);
+};
+
 const godsAbi = require("./abis/gods.abi.js").default;
 const godsAddress = "0x8ccf065f5c4d3e2fcb025329f22222448dbabf8b";
 const baseGodUrl =
@@ -156,6 +172,31 @@ async function getGods(address) {
   }
 
   return await Promise.all(godsResult);
+}
+
+const herosAbi = require("./abis/heros.abi.js").default;
+const herosAddress = "0x345974220a845ddeceed011e8e6106b59724b661";
+const baseHeroUrl =
+  "https://ipfs.io/ipfs/QmQCA6Hfr7357MrQskqsPmcBfGre8WDUUcH4qur15s4ELt/"; // + ID
+async function getHeroCount(address) {
+  let herosContract = new web3.eth.Contract(herosAbi, herosAddress);
+  let heroBalance = await herosContract.methods.balanceOf(address).call();
+  console.log("God balance:", heroBalance);
+  return heroBalance;
+}
+
+async function getHeros(address) {
+  let herosContract = new web3.eth.Contract(herosAbi, herosAddress);
+  let heroBalance = await herosContract.methods.balanceOf(address).call();
+  console.log("Hero balance:", heroBalance);
+  let herosResult = [];
+  for (let i = 0; i < heroBalance; i++) {
+    let getHero = herosContract.methods.tokenOfOwnerByIndex(address, i).call();
+    herosResult.push(getHero);
+    console.log(getHero);
+  }
+
+  return await Promise.all(herosResult);
 }
 
 app.listen(5000);
